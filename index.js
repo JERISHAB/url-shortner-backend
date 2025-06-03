@@ -11,7 +11,29 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
+
+// Public route to redirect short URLs
+app.get("/:shortCode", async (req, res) => {
+    const { shortCode } = req.params;
+    try {
+      const result = await db.query(
+        "SELECT original_url FROM urls WHERE short_code = $1",
+        [shortCode]
+      );
+  
+      if (result.rowCount === 0) {
+        return res.status(404).send("Short URL not found");
+      }
+  
+      const originalUrl = result.rows[0].original_url;
+      return res.redirect(originalUrl);
+    } catch (err) {
+      console.error(err);
+      return res.status(500).send("Server error");
+    }
+  });
+  
 
 app.use("/api/auth", authRoutes);
 app.use("/api", authenticateToken); // Protect all /api routes below
