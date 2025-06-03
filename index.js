@@ -1,136 +1,108 @@
+// index.js
 require("dotenv").config();
-
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const db = require("./db");
+const authRoutes = require("./auth");
+const authenticateToken = require("./middleware/auth");
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-const { swaggerUi, swaggerSpec } = require("./swagger");
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+const PORT = process.env.PORT || 3000;
 
-// List all urls
+app.use("/api/auth", authRoutes);
+app.use("/api", authenticateToken); // Protect all /api routes below
+
+// Create Short URL
+app.post("/api/url/shorten", async (req, res) => {
+  const { originalUrl, customCode } = req.body;
+  const userId = req.user.userId;
+  const shortCode = customCode || Math.random().toString(36).substring(2, 8);
+
+  try {
+    const result = await db.query(
+      "INSERT INTO urls (original_url, short_code, user_id) VALUES ($1, $2, $3) RETURNING *",
+      [originalUrl, shortCode, userId]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    res.status(400).json({ error: "Short code already exists or bad input" });
+  }
+});
+
+// List all URLs for the logged-in user
 app.get("/api/urls", async (req, res) => {
-  const result = await db.query("SELECT * FROM urls ORDER BY created_at DESC");
+  const userId = req.user.userId;
+  const result = await db.query(
+    "SELECT * FROM urls WHERE user_id = $1 ORDER BY created_at DESC",
+    [userId]
+  );
   res.json(result.rows);
 });
 
-// Get individual URL by ID
+// Get single URL by ID
 app.get("/api/url/:id", async (req, res) => {
   const { id } = req.params;
-  const result = await db.query("SELECT * FROM urls WHERE id = $1", [id]);
-
-  if (result.rowCount === 0) {
-    return res.status(404).json({ error: "URL not found" });
-  }
+  const userId = req.user.userId;
+  const result = await db.query(
+    "SELECT * FROM urls WHERE id = $1 AND user_id = $2",
+    [id, userId]
+  );
+  if (result.rowCount === 0)
+    return res.status(403).json({ error: "Not authorized or not found" });
   res.json(result.rows[0]);
 });
 
-
-//Edit the original URL
+// Edit original URL
 app.put("/api/url/:id/edit-original", async (req, res) => {
   const { id } = req.params;
   const { newOriginalUrl } = req.body;
+  const userId = req.user.userId;
 
   const result = await db.query(
-    "UPDATE urls SET original_url = $1 WHERE id = $2 RETURNING *",
-    [newOriginalUrl, id]
+    "UPDATE urls SET original_url = $1 WHERE id = $2 AND user_id = $3 RETURNING *",
+    [newOriginalUrl, id, userId]
   );
-
-  if (result.rowCount === 0) {
-    return res.status(404).json({ error: "URL not found" });
-  }
-
+  if (result.rowCount === 0)
+    return res.status(403).json({ error: "Unauthorized to edit this URL" });
   res.json({ message: "Original URL updated", data: result.rows[0] });
 });
 
-
-
-// Edit the short code
+// Edit short code
 app.put("/api/url/:id/edit-shortcode", async (req, res) => {
   const { id } = req.params;
   const { newShortCode } = req.body;
+  const userId = req.user.userId;
 
-  const existing = await db.query("SELECT * FROM urls WHERE short_code = $1", [
+  const exists = await db.query("SELECT * FROM urls WHERE short_code = $1", [
     newShortCode,
   ]);
-  if (existing.rowCount > 0) {
-    return res.status(400).json({ error: "Short code already in use" });
-  }
-
-  const updated = await db.query(
-    "UPDATE urls SET short_code = $1 WHERE id = $2 RETURNING *",
-    [newShortCode, id]
-  );
-
-  if (updated.rowCount === 0) {
-    return res.status(404).json({ error: "URL not found" });
-  }
-
-  res.json({ message: "Short code updated", data: updated.rows[0] });
-});
-
-
-
-// Delete a short URL
-app.delete('/api/url/:id', async (req, res) => {
-    const { id } = req.params;
-  
-    const deleted = await db.query(
-      'DELETE FROM urls WHERE id = $1 RETURNING *',
-      [id]
-    );
-  
-    if (deleted.rowCount === 0) {
-      return res.status(404).json({ error: 'URL not found' });
-    }
-  
-    res.json({ message: 'URL deleted', data: deleted.rows[0] });
-  });
-
-
-
-// Post create short url
-app.post("/api/url/shorten", async (req, res) => {
-  const { originalUrl, customCode } = req.body;
-  const shortCode = customCode || Math.random().toString(36).substring(2, 8);
-
-  //check if the shortcode already exists
-  const existing = await db.query("SELECT * FROM urls WHERE short_code = $1", [
-    shortCode,
-  ]);
-  if (existing.rowCount > 0) {
-    return res.status(400).json({ error: "short code already in use" });
-  }
-
-  await db.query("INSERT INTO urls (short_code, original_url) VALUES ($1,$2)", [
-    shortCode,
-    originalUrl,
-  ]);
-  res.json({ shortUrl: `http://localhost:3000/${shortCode}` });
-});
-
-
-
-
-app.get("/:code", async (req, res) => {
-  const { code } = req.params;
+  if (exists.rowCount > 0)
+    return res.status(400).json({ error: "Short code already taken" });
 
   const result = await db.query(
-    "SELECT original_url FROM urls WHERE short_code = $1",
-    [code]
+    "UPDATE urls SET short_code = $1 WHERE id = $2 AND user_id = $3 RETURNING *",
+    [newShortCode, id, userId]
   );
-
-  if (result.rowCount === 0) {
-    return res.status(404).send("Short URL not found");
-  }
-  res.redirect(result.rows[0].original_url);
+  if (result.rowCount === 0)
+    return res.status(403).json({ error: "Unauthorized to edit this URL" });
+  res.json({ message: "Short code updated", data: result.rows[0] });
 });
 
-const PORT = 3000;
-app.listen(PORT, () =>
-  console.log(`Server is running at http://localhost:${PORT}`)
-);
+// Delete a URL
+app.delete("/api/url/:id", async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user.userId;
+  const result = await db.query(
+    "DELETE FROM urls WHERE id = $1 AND user_id = $2 RETURNING *",
+    [id, userId]
+  );
+  if (result.rowCount === 0)
+    return res.status(403).json({ error: "Unauthorized to delete this URL" });
+  res.json({ message: "URL deleted", data: result.rows[0] });
+});
+
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
