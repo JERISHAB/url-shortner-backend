@@ -91,7 +91,7 @@ CREATE TABLE urls (
 ## 🧪 Running the Server
 
 ```bash
-npm start
+nodemon index.js
 ```
 
 Server runs at:
