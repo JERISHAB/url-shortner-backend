@@ -6,6 +6,8 @@ const cors = require("cors");
 const db = require("./db");
 const authRoutes = require("./auth");
 const authenticateToken = require("./middleware/auth");
+const { createShortUrlValidation } = require("./validators/url.validator");
+const validate = require("./middleware/validation.middleware");
 
 const app = express();
 app.use(cors());
@@ -13,54 +15,56 @@ app.use(bodyParser.json());
 
 const PORT = 3000;
 
-
 // initialising morgan for http logs
 const morgan = require("morgan");
 
 app.use(morgan("dev")); // Logs requests to the terminal
 
-
 // Public route to redirect short URLs
 app.get("/:shortCode", async (req, res) => {
-    const { shortCode } = req.params;
-    try {
-      const result = await db.query(
-        "SELECT original_url FROM urls WHERE short_code = $1",
-        [shortCode]
-      );
-  
-      if (result.rowCount === 0) {
-        return res.status(404).send("Short URL not found");
-      }
-  
-      const originalUrl = result.rows[0].original_url;
-      return res.redirect(originalUrl);
-    } catch (err) {
-      console.error(err);
-      return res.status(500).send("Server error");
+  const { shortCode } = req.params;
+  try {
+    const result = await db.query(
+      "SELECT original_url FROM urls WHERE short_code = $1",
+      [shortCode]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).send("Short URL not found");
     }
-  });
-  
+
+    const originalUrl = result.rows[0].original_url;
+    return res.redirect(originalUrl);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).send("Server error");
+  }
+});
 
 app.use("/api/auth", authRoutes);
 app.use("/api", authenticateToken); // Protect all /api routes below
 
 // Create Short URL
-app.post("/api/url/shorten", async (req, res) => {
-  const { originalUrl, customCode } = req.body;
-  const userId = req.user.userId;
-  const shortCode = customCode || Math.random().toString(36).substring(2, 8);
+app.post(
+  "/api/url/shorten",
+  createShortUrlValidation,
+  validate,
+  async (req, res) => {
+    const { originalUrl, customCode } = req.body;
+    const userId = req.user.userId;
+    const shortCode = customCode || Math.random().toString(36).substring(2, 8);
 
-  try {
-    const result = await db.query(
-      "INSERT INTO urls (original_url, short_code, user_id) VALUES ($1, $2, $3) RETURNING *",
-      [originalUrl, shortCode, userId]
-    );
-    res.status(201).json(result.rows[0]);
-  } catch (err) {
-    res.status(400).json({ error: "Short code already exists or bad input" });
+    try {
+      const result = await db.query(
+        "INSERT INTO urls (original_url, short_code, user_id) VALUES ($1, $2, $3) RETURNING *",
+        [originalUrl, shortCode, userId]
+      );
+      res.status(201).json(result.rows[0]);
+    } catch (err) {
+      res.status(400).json({ error: "Short code already exists or bad input" });
+    }
   }
-});
+);
 
 // List all URLs for the logged-in user
 app.get("/api/urls", async (req, res) => {

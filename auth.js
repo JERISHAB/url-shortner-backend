@@ -4,13 +4,11 @@ const jwt = require("jsonwebtoken");
 const db = require("./db");
 const router = express.Router();
 
-
-
 // POST /api/auth/register
 router.post("/register", async (req, res) => {
   const { username, email, password } = req.body;
   const hashed = await bcrypt.hash(password, 10);
-
+  
   try {
     const result = await db.query(
       "INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING id, username, email",
