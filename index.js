@@ -9,6 +9,7 @@ const authenticateToken = require("./middleware/auth");
 const { createShortUrlValidation } = require("./validators/url.validator");
 const validate = require("./middleware/validation.middleware");
 
+
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
@@ -61,7 +62,7 @@ app.post(
       );
       res.status(201).json(result.rows[0]);
     } catch (err) {
-      res.status(400).json({ error: "Short code already exists or bad input" });
+      res.status(400).json({ error: "Short code already exists" });
     }
   }
 );

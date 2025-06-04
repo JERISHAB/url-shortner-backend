@@ -10,7 +10,6 @@ exports.createShortUrlValidation = [
     console.log("Proceeding with validation");
     next();
   },
-
   body("customCode")
     .optional()
     .isAlphanumeric()

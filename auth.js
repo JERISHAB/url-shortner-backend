@@ -4,19 +4,25 @@ const jwt = require("jsonwebtoken");
 const db = require("./db");
 const router = express.Router();
 
+const validate = require("./middleware/validation.middleware");
+
+
+const { loginValidation } = require('./validators/auth.validator')
+const {registerValidation} = require('./validators/auth.validator')
+
 // POST /api/auth/register
-router.post("/register", async (req, res) => {
+router.post("/register", registerValidation,validate, async (req, res) => {
   const { username, email, password } = req.body;
-  const hashed = await bcrypt.hash(password, 10);
-  
+  const hashed_pass = await bcrypt.hash(password, 10);
+
   try {
     const result = await db.query(
       "INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING id, username, email",
-      [username, email, hashed]
+      [username, email, hashed_pass]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    res.status(400).json({ error: "User already exists or invalid input" });
+    res.status(409).json({ error: "User already exists" });
   }
 });
 
@@ -29,10 +35,10 @@ router.post("/login", async (req, res) => {
   ]);
   const user = result.rows[0];
 
-  if (!user) return res.status(400).json({ error: "Invalid credentials" });
+  if (!user) return res.status(404).json({ error: "User not found" });
 
   const match = await bcrypt.compare(password, user.password);
-  if (!match) return res.status(400).json({ error: "Invalid credentials" });
+  if (!match) return res.status(400).json({ error: "Incorrect password" });
 
   const token = jwt.sign(
     { userId: user.id, username: user.username },
