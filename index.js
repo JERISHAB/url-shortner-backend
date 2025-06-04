@@ -13,6 +13,13 @@ app.use(bodyParser.json());
 
 const PORT = 3000;
 
+
+// initialising morgan for http logs
+const morgan = require("morgan");
+
+app.use(morgan("dev")); // Logs requests to the terminal
+
+
 // Public route to redirect short URLs
 app.get("/:shortCode", async (req, res) => {
     const { shortCode } = req.params;
