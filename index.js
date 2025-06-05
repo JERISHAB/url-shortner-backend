@@ -1,4 +1,3 @@
-// index.js
 require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
@@ -9,19 +8,17 @@ const authenticateToken = require("./middleware/auth");
 const { createShortUrlValidation } = require("./validators/url.validator");
 const validate = require("./middleware/validation.middleware");
 
-
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
 const PORT = 3000;
 
-// initialising morgan for http logs
+// for http logs
 const morgan = require("morgan");
+app.use(morgan("dev"));
 
-app.use(morgan("dev")); // Logs requests to the terminal
-
-// Public route to redirect short URLs
+// route to redirect shorturls
 app.get("/:shortCode", async (req, res) => {
   const { shortCode } = req.params;
   try {
@@ -42,10 +39,16 @@ app.get("/:shortCode", async (req, res) => {
   }
 });
 
-app.use("/api/auth", authRoutes);
-app.use("/api", authenticateToken); // Protect all /api routes below
 
-// Create Short URL
+// Used for login and register
+app.use("/api/auth", authRoutes);
+
+// for the token validation
+app.use("/api", authenticateToken);
+
+
+
+// create Short URL
 app.post(
   "/api/url/shorten",
   createShortUrlValidation,
@@ -67,7 +70,7 @@ app.post(
   }
 );
 
-// List all URLs for the logged-in user
+// list all urls
 app.get("/api/urls", async (req, res) => {
   const userId = req.user.userId;
   const result = await db.query(
@@ -77,20 +80,7 @@ app.get("/api/urls", async (req, res) => {
   res.json(result.rows);
 });
 
-// Get single URL by ID
-app.get("/api/url/:id", async (req, res) => {
-  const { id } = req.params;
-  const userId = req.user.userId;
-  const result = await db.query(
-    "SELECT * FROM urls WHERE id = $1 AND user_id = $2",
-    [id, userId]
-  );
-  if (result.rowCount === 0)
-    return res.status(403).json({ error: "Not authorized or not found" });
-  res.json(result.rows[0]);
-});
-
-// Edit original URL
+// edit original urls
 app.put("/api/url/:id/edit-original", async (req, res) => {
   const { id } = req.params;
   const { newOriginalUrl } = req.body;
@@ -105,7 +95,7 @@ app.put("/api/url/:id/edit-original", async (req, res) => {
   res.json({ message: "Original URL updated", data: result.rows[0] });
 });
 
-// Edit short code
+// edit shortcode
 app.put("/api/url/:id/edit-shortcode", async (req, res) => {
   const { id } = req.params;
   const { newShortCode } = req.body;
@@ -126,7 +116,7 @@ app.put("/api/url/:id/edit-shortcode", async (req, res) => {
   res.json({ message: "Short code updated", data: result.rows[0] });
 });
 
-// Delete a URL
+// delete a url
 app.delete("/api/url/:id", async (req, res) => {
   const { id } = req.params;
   const userId = req.user.userId;

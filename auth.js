@@ -6,12 +6,11 @@ const router = express.Router();
 
 const validate = require("./middleware/validation.middleware");
 
+const { loginValidation } = require("./validators/auth.validator");
+const { registerValidation } = require("./validators/auth.validator");
 
-const { loginValidation } = require('./validators/auth.validator')
-const {registerValidation} = require('./validators/auth.validator')
-
-// POST /api/auth/register
-router.post("/register", registerValidation,validate, async (req, res) => {
+// register
+router.post("/register", registerValidation, validate, async (req, res) => {
   const { username, email, password } = req.body;
   const hashed_pass = await bcrypt.hash(password, 10);
 
@@ -26,7 +25,7 @@ router.post("/register", registerValidation,validate, async (req, res) => {
   }
 });
 
-// POST /api/auth/login
+//login
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
