@@ -47,8 +47,9 @@ npm install
 Create a `.env` file in the root of the backend directory:
 
 ```env
-DATABASE_URL=postgresql://your_db_user:your_db_password@localhost:5432/your_db_name
-JWT_SECRET=your_super_secret_jwt_key
+DB_NAME=your_db_name
+DB_PASSWORD=you_db_password
+JWT_SECRET=your_super_secret_key 
 ```
 
 ### 4. Setup PostgreSQL Database
@@ -101,67 +102,3 @@ http://localhost:3000
 ```
 
 ---
-
-## 📡 API Endpoints
-
-| Method | Route                         | Description              | Auth Required |
-| ------ | ----------------------------- | ------------------------ | ------------- |
-| POST   | `/api/auth/register`          | Register a new user      | ❌             |
-| POST   | `/api/auth/login`             | Log in and get JWT token | ❌             |
-| POST   | `/api/url/shorten`            | Create a short URL       | ✅             |
-| GET    | `/api/urls`                   | List user's URLs         | ✅             |
-| GET    | `/api/url/:id`                | Get single URL           | ✅             |
-| PUT    | `/api/url/:id/edit-original`  | Update original URL      | ✅             |
-| PUT    | `/api/url/:id/edit-shortcode` | Update short code        | ✅             |
-| DELETE | `/api/url/:id`                | Delete a shortened URL   | ✅             |
-| GET    | `/:shortCode`                 | Redirect to original URL | ❌             |
-
----
-
-## 🔐 Auth Middleware
-
-All `/api/` routes (except `/auth`) are protected via the `authenticateToken` middleware that checks for valid JWT tokens in the `Authorization` header.
-
----
-
-## 🗂️ Project Structure
-
-```
-backend/
-│
-├── db.js               → PostgreSQL client
-├── index.js            → Main entry point and route handlers
-├── auth.js             → Auth (register/login) routes
-├── middleware/
-│   └── auth.js         → JWT middleware
-├── .env                → Environment variables
-├── package.json
-```
-
----
-
-## 🔄 Redirect Support
-
-To access a shortened URL, simply visit:
-
-```
-http://localhost:3000/schools
-```
-
-Where `schools` is the custom short code.
-
-This works without authentication and is defined in `index.js`.
-
----
-
-## 📋 Sample API Request (POST /api/url/shorten)
-
-```json
-{
-  "originalUrl": "https://example.com/long-page",
-  "customCode": "example"
-}
-```
-
----
-
