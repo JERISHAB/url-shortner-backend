@@ -1,31 +1,5 @@
 
-````markdown
-# 🖥️ URL Shortener Backend
 
-This is the **backend** of a full-stack URL Shortener application built using **Node.js**, **Express**, **PostgreSQL**, and **JWT**. It handles user authentication, URL creation and management, and secure routing.
-
----
-
-## 🚀 Features
-
-- 🔐 User registration and login with JWT authentication
-- 🔗 URL shortening with optional custom short codes
-- 📋 Retrieve, edit, and delete shortened URLs
-- 🔄 Redirect shortened URLs to original destinations
-- 🧱 PostgreSQL integration with user-based URL storage
-- 🔒 Auth middleware for protecting endpoints
-
----
-
-## 🧰 Tech Stack
-
-- Node.js + Express
-- PostgreSQL + node-postgres (`pg`)
-- JSON Web Tokens (`jsonwebtoken`)
-- Dotenv for config
-- CORS + Body Parser
-
----
 
 ## ⚙️ Installation & Setup
 
