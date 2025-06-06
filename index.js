@@ -55,6 +55,7 @@ app.post(
   validate,
   async (req, res) => {
     const { originalUrl, customCode } = req.body;
+    console.log(res.body)
     const userId = req.user.userId;
     const shortCode = customCode || Math.random().toString(36).substring(2, 8);
 

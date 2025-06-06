@@ -10,10 +10,18 @@ exports.createShortUrlValidation = [
     console.log("Proceeding with validation");
     next();
   },
+  
+  // body("customCode")
+  //   .isEmpty() || notEmpty().isAlphanumeric()
+  //     .withMessage("Custom code must be alphanumeric")
+  //   .isLength({ min: 3, max: 10 })
+  //   .withMessage("Custom code must be 3-10 characters"),
+
   body("customCode")
-    .optional()
-    .isAlphanumeric()
-    .withMessage("Custom code must be alphanumeric")
+    .notEmpty().isAlphanumeric()
+      .withMessage("Custom code must be alphanumeric")
     .isLength({ min: 3, max: 10 })
     .withMessage("Custom code must be 3-10 characters"),
+  
+  
 ];
