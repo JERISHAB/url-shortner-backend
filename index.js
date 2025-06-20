@@ -122,7 +122,7 @@ app.delete("/api/url/:id", async (req, res) => {
   const { id } = req.params;
   const userId = req.user.userId;
   const result = await db.query(
-    "DELETE FROM urls WHERE id = $1 AND user_id = $2 RETURNING *",
+    "DELETE FROM urls WHERE id = $1 AND user_id = $2",
     [id, userId]
   );
   if (result.rowCount === 0)
